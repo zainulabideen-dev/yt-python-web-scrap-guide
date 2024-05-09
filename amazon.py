@@ -2,6 +2,8 @@ import requests
 import pandas as pd
 from bs4 import BeautifulSoup
 
+out_put_dic = {"Title": [], "Price": [], "Image": []}
+
 
 def prod_details(link):
     print(f"=> scrapping link | {link}")
@@ -38,11 +40,14 @@ def prod_details(link):
     soup = BeautifulSoup(response.text, 'html.parser')
     title = str(soup.find("span", {"id": "productTitle"}).getText()).strip()
     price = str(soup.find("span", {"class": "a-price-whole"}).getText()).strip()
+    image_link = soup.find("div", {"id": "imgTagWrapperId"}).find("img")["src"]
     print(f"Title: {title} | Price: {price}")
+    out_put_dic["Title"].append(title)
+    out_put_dic["Price"].append(price)
+    out_put_dic["Image"].append(image_link)
 
 
-def scrap_product(keyword):
-    url = f"https://www.amazon.co.uk/s?k={keyword}&s=price-desc-rank"
+def scrap_product(url):
     payload = {}
     headers = {
         'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
@@ -78,7 +83,16 @@ def scrap_product(keyword):
         if a_tag is not None:
             link = f"https://www.amazon.co.uk/{a_tag["href"]}"
             prod_details(link)
+    # save data to Excel file
+    df = pd.DataFrame(out_put_dic)
+    df.to_excel("amazon-out-put.xlsx", index=False)
+
+
+def amazon_product_pages(cat):
+    for x in range(20):
+        page_link = f"https://www.amazon.co.uk/s?k={cat}&s=price-desc-rank&page=3&qid=1715238051&ref=sr_pg_{x+1}"
+        scrap_product(page_link)
 
 
 if __name__ == '__main__':
-    scrap_product("laptop")
+    amazon_product_pages("laptop")
